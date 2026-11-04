@@ -6,7 +6,7 @@
 
 [**Website**](https://picklerod.github.io/pickler-casting-mod/) · [**Download the mod**](https://picklerod.github.io/pickler-casting-mod/downloads/Pickler_Casting_Mod.luau) · [**Clip Companion**](https://picklerod.github.io/pickler-casting-mod/downloads/PicklerClipCompanion.zip)
 
-`4 camera styles` · `41 goal explosions` · `4 one-click setups` · `automatic clips`
+`4 camera styles` · `45 goal explosions` · `4 one-click setups` · `automatic clips`
 
 </div>
 
@@ -31,9 +31,9 @@ You can also follow one player in first or third person, or fly a free camera.
 
 ### Goal explosions
 
-41 explosions, plus Shuffle and Shuffle Favorites:
+45 explosions, plus Shuffle and Shuffle Favorites:
 
-- **Big hits:** Dragon Duel, Supernova, Meteor Strike, Phoenix Rising, Jackpot, Light Show and more
+- **Big hits:** Dragon Duel, Supernova, Meteor Strike, Phoenix Rising, Jackpot, Light Show, Royal Blade, Hellfire, Popcorn, Party Time, Voxel Blast and more
 - **Specials:** Death Note, GG EZ, Busted, Paparazzi, UFO Abduction and more
 - **Esports Teams:** NOVA, Xeno and Guacward
 - **Holidays:** sets for Halloween, Christmas, New Year's and Valentine's

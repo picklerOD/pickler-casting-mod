@@ -298,6 +298,20 @@ local function upgradeConfig()
 		config.version = 29
 		saveConfig()
 	end
+	if ver < 30 then
+		-- Royal Blade added before the shuffles: 42 -> 43, 43 -> 44.
+		if config.goalFxType == 43 then config.goalFxType = 44
+		elseif config.goalFxType == 42 then config.goalFxType = 43 end
+		config.version = 30
+		saveConfig()
+	end
+	if ver < 31 then
+		-- Popcorn, Party Time and Voxel Blast added before the shuffles: 43 -> 46, 44 -> 47.
+		if config.goalFxType == 44 then config.goalFxType = 47
+		elseif config.goalFxType == 43 then config.goalFxType = 46 end
+		config.version = 31
+		saveConfig()
+	end
 end
 
 local function initConfig(dc)
@@ -339,7 +353,7 @@ end
 Box.empty = Box.new(Vec3.zeroVector, Vec3.zeroVector, Quat.identity)
 
 initConfig({
-	version = 29,
+	version = 31,
 
 	firstPersonFOV = 100,
 
@@ -480,7 +494,7 @@ initConfig({
 
 	goalFxEnabled = true,
 	plDribbleFP = true, plDribbleHold = 1.0, plDribbleLook = 1, plFirstPersonFOV = 110,   -- Plutus first person
-	goalFxType = 42,   -- 1-41 = goal explosions, 42 = Shuffle, 43 = Shuffle Favorites
+	goalFxType = 46,   -- 1-45 = goal explosions, 46 = Shuffle, 47 = Shuffle Favorites
 	goalFxFavs = "",   -- favorites as "|Name|Name|"
 	goalFxShake = true,          -- big goal explosions shake the camera a little
 	goalFxBrowseCat = "all",     -- explosion browser tab: all / premium / holiday / meme
@@ -897,7 +911,7 @@ GOAL_FX_TYPES = {
 	"Phoenix Rising",
 	"Hyperdrive Portal",
 	"Reality Break",
-	"Splash",
+	"Hellfire",
 	"Snowman Smash (Christmas)",
 	"Ornament Shatter (Christmas)",
 	"Private Property",
@@ -918,11 +932,15 @@ GOAL_FX_TYPES = {
 	"Snow Globe (Christmas)",
 	"Xeno",
 	"NOVA",
+	"Royal Blade",
+	"Popcorn",
+	"Party Time",
+	"Voxel Blast",
 	"Shuffle (random each goal)",
 	"Shuffle Favorites",
 }
-GOALFX_SHUFFLE = 42
-GOALFX_SHUFFLE_FAV = 43
+GOALFX_SHUFFLE = 46
+GOALFX_SHUFFLE_FAV = 47
 -- Tier ranking (best to worst) and category for every explosion, used by the explosion browser.
 -- Ranked on how much is going on (real 3D geometry, layers, choreography, a clear payoff), not
 -- on age. S = showpiece, A = excellent, B = good but simpler, C = basic / due an upgrade.
@@ -932,7 +950,7 @@ GOAL_FX_INFO = {
 	[12]={tier="S",cat="premium",desc="Notebook rises, pages flip, a pen writes the scorer's name, it crumbles to ash"},
 	[16]={tier="S",cat="premium",desc="Flaming meteor smashes the goal: rocks, molten chunks, mushroom cloud"},
 	[17]={tier="S",cat="premium",desc="Target lock, then a giant beam from orbit and a detonation"},
-	[21]={tier="S",cat="premium",desc="Water bomb: 3D dome, crown of water, jet and a second splash"},
+	[21]={tier="S",cat="premium",desc="The floor glows, flame jets and a pillar of fire erupt, then a huge second blast"},
 	[18]={tier="S",cat="premium",desc="A 3D firebird with real feathered wings hatches, climbs, screeches and dives into the goal"},
 	[20]={tier="A",cat="premium",desc="Space cracks and shatters like glass, revealing a starry void"},
 	[7]={tier="A",cat="premium",desc="3D ice crystals pop up, crack and shatter into tumbling shards"},
@@ -969,8 +987,12 @@ GOAL_FX_INFO = {
 	[39]={tier="B",cat="holiday",hol="Christmas",desc="A giant snow globe shakes, cracks and shatters into ice and snow"},
 	[40]={tier="A",cat="team",desc="The Xeno logo spins up with a ring, grows and sparkles over the goal, then breaks apart"},
 	[41]={tier="S",cat="team",desc="For team NOVA: a star goes supernova, their logo slams together over the blast, then shatters"},
-	[42]={tier="",cat="all",desc="A different explosion every goal"},
-	[43]={tier="",cat="all",desc="A different one of your favorites every goal (star them first)"},
+	[42]={tier="S",cat="premium",desc="A beam of light, then a giant white and gold sword slams down: feathers, gold sparks, then it shatters"},
+	[43]={tier="A",cat="premium",desc="A giant bucket rattles, popcorn pops faster and faster, then it all goes off"},
+	[44]={tier="A",cat="premium",desc="Party poppers, confetti and balloons that all burst at once: PARTY TIME!"},
+	[45]={tier="A",cat="premium",desc="Cubes snap into a giant blocky ball, it pulses, then bursts into bouncing pixels"},
+	[46]={tier="",cat="all",desc="A different explosion every goal"},
+	[47]={tier="",cat="all",desc="A different one of your favorites every goal (star them first)"},
 }
 GOAL_FX_TIER_COL = {S={1,.75,.2},A={.45,.85,1},B={.55,1,.5},C={.7,.7,.75}}
 GOAL_FX_TIER_ORDER = {S=1,A=2,B=3,C=4}
@@ -5943,7 +5965,7 @@ GFX_DEFS[20]={
 	end,
 }
 
--- 21: SPLASH -----------------------------------------------------------------------------------
+-- water and comic helpers (from the old Splash) -----------------------------------------------------------------------------------
 -- Comic-book water burst (original art in a pop-art style). The moment the goal goes in, a big
 -- spiky cartoon splat pops open in the goal mouth: dark blue outline, light blue fill, white
 -- shines and chunky blobs round the rim. It wobbles while cartoon drops (teardrops with outlines)
@@ -5958,7 +5980,7 @@ GFX_PAL_WATER={flash={.8,.95,1},ring={.4,.8,1},ring2={.8,.95,1},light={.4,.7,1},
 	fire={{1,1,1},{.6,.85,1},{.25,.55,1},{.05,.15,.35}},
 	ember={{1,1,1},{.7,.9,1},{.3,.6,1}},
 	smoke={{.75,.85,.95},{.35,.45,.55}}}
-SPLASH_TIMING={burst=1.1,total=2.6}   -- splat hangs until burst, then breaks apart
+SPLASH_TIMING={burst=1.7,total=3.4}   -- splat hangs until burst, then breaks apart
 Splash={onSound=nil}
 function GFX.splashSound(ev)
 	if Splash.onSound then pcall(Splash.onSound,ev) end
@@ -6101,69 +6123,72 @@ function GFX.comicWord(x,c,text,u,ang,a)
 	GFX.memeText(c+tc*(4*x.S)-ax*(u*.15)+ay*(u*.25),text,ax,ay,u,u*.12,LinearColor.new(1.2*k,.55*k,.45*k,a))
 end
 
+-- 21: HELLFIRE ------------------------------------------------------------------------------------
+-- The floor glows and spits embers, then flame jets and a towering pillar of fire tear out of the
+-- goal. A second, bigger blast sends it all up in a mushroom of fire and smoke.
+HELLFIRE_TIMING={erupt=.6,second=2.3,total=4.4}
+GFX_FIRE_RAMP={{1,1,.8},{1,.7,.15},{1,.25,.03},{.25,.04,.02}}
+
 GFX_DEFS[21]={
-	duration=function() return SPLASH_TIMING.total end,
+	duration=function() return HELLFIRE_TIMING.total end,
 	init=function(x)
-		local S=x.S
-		x.ld=(x.u*.6+x.f*.7+x.r*.3):getSafeNormal()
-		x.sc=x.o+x.u*(10*S)
-		x.seed=GFX.rand(0,6)
-		GFX.splashSound("impact")
-		GFX.flashAt(x,x.sc,300*S,{.85,.95,1},.25)
-		GFX.shock(x,x.base+x.f*(70*S)+x.u*(4*S),x.r,x.f,520*S,22*S,{.55,.88,1},.8)
-		GFX.light(x,x.sc,{.45,.75,1},55000,2800*S,.02,.25,.6)
-		GFX.addShake(16*S)
-		-- cartoon drops spraying everywhere, mostly out to the sides and up
-		for i=1,GFX.n(x,90) do
-			local th=GFX.rand(0,6.2832)
-			local dir=(GFX.bR*math.cos(th)+GFX.bU*(math.sin(th)*.8+.25)+(GFX.cp-x.sc):getSafeNormal()*GFX.rand(-.2,.6)):getSafeNormal()
-			local sz=GFX.rand(7,16)*S
-			GFX.add({kind=6,p=x.sc+dir*(GFX.rand(40,140)*S),v=dir*(GFX.rand(500,1300)*S),life=GFX.rand(.9,1.5),
-				s0=sz,s1=sz*.6,ramp={{1,1,1}},grav=900*S,drag=.6,fin=.001,fp=.8})
-		end
+		x.fl=x.base+x.f*(60*x.S)
+		GFX.light(x,x.fl+x.u*(60*x.S),{1,.35,.08},25000,2200*x.S,.5,.3,.4)
 	end,
 	update=function(x,age,d)
-		local S,TM=x.S,SPLASH_TIMING
-		local c=x.sc
-		local a=1-goalFxSmooth((age-(TM.total-.4))/.4)
-		-- the splat pops open hard, wobbles while it hangs there, then breaks into blobs
-		local pop=GFX.backOut(age/.14)
-		local hold=1-goalFxSmooth((age-TM.burst)/.25)
-		GFX.comicSplat(x,c,330*S,pop,age,hold*a)
-		if GFX.once(x,"break",TM.burst) then
-			GFX.splashSound("burst")
-			for i=1,GFX.n(x,40) do
-				local th=GFX.rand(0,6.2832)
-				local dir=(GFX.bR*math.cos(th)+GFX.bU*math.sin(th)*.85):getSafeNormal()
-				local sz=GFX.rand(14,26)*S
-				GFX.add({kind=6,p=c+dir*(GFX.rand(100,300)*S),v=dir*(GFX.rand(250,700)*S)+x.u*(150*S),
-					life=GFX.rand(.8,1.2),s0=sz,s1=sz*.5,ramp={{1,1,1}},grav=1000*S,drag=.6,fin=.001,fp=.7})
+		local S,TM=x.S,HELLFIRE_TIMING
+		local U,c=x.u,x.fl
+		local ramp=GFX_FIRE_RAMP
+		local mid=c+U*(300*S)
+		local function ringAt(rr)
+			local th=GFX.rand(0,6.2832)
+			return c+x.r*(math.cos(th)*rr)+x.f*(math.sin(th)*rr)
+		end
+		-- build-up: a hot glow and embers spitting off the floor
+		if age<TM.erupt then
+			local t=age/TM.erupt
+			GFX.glow(c+U*(8*S),(80+t*t*260)*S,1,.35,.05,.4+t*.5,age,.8)
+			GFX.addShake(t*t*3*S*d*20)
+			for i=1,GFX.rate(x,"ember",70) do
+				GFX.add({kind=2,p=ringAt(GFX.rand(0,320)*S),v=U*(GFX.rand(200,520)*S),life=.8,s0=3.5*S,s1=1*S,ramp=ramp,st=.05,fin=.1})
 			end
 		end
-		-- a steady drizzle of drops off the splat while it hangs
-		if age<TM.burst then
-			for i=1,GFX.rate(x,"drip",60) do
-				local th=GFX.rand(0,6.2832)
-				local dir=(GFX.bR*math.cos(th)+GFX.bU*math.sin(th)*.85):getSafeNormal()
-				local sz=GFX.rand(5,10)*S
-				GFX.add({kind=6,p=c+dir*(GFX.rand(200,330)*S*pop),v=dir*(GFX.rand(150,400)*S),life=GFX.rand(.6,1),
-					s0=sz,s1=sz*.6,ramp={{1,1,1}},grav=900*S,drag=.5,fin=.001,fp=.7})
+		if GFX.once(x,"erupt",TM.erupt) then
+			GFX.flashAt(x,mid,800*S,{1,.8,.4},.25)
+			GFX.blast(x,c+U*(60*S),GFX.teamPal({1,.4,.08}),1.6)
+			GFX.addShake(24*S)
+			GFX.light(x,mid,{1,.4,.08},70000,3400*S,.03,1.4,1)
+			GFX.shock(x,c+U*(5*S),x.r,x.f,1200*S,20*S,{1,.45,.1},.9)
+		end
+		-- the pillar and a ring of jets
+		if age>=TM.erupt and age<TM.total-.9 then
+			for i=1,GFX.rate(x,"pillar",150) do
+				local p=ringAt(GFX.rand(0,90)*S)
+				GFX.add({kind=1,p=p,v=U*(GFX.rand(800,1500)*S)+GFX.rdir(x)*(70*S),life=GFX.rand(.5,.9),s0=GFX.rand(40,70)*S,s1=12*S,
+					ramp=ramp,drag=.5,hot=.9,fin=.05,fp=.4})
+			end
+			for j=1,6 do
+				local th=j/6*6.2832+age*.8
+				local p=c+x.r*(math.cos(th)*330*S)+x.f*(math.sin(th)*330*S)
+				for i=1,GFX.rate(x,"jet"..j,22) do
+					GFX.add({kind=1,p=p,v=U*(GFX.rand(550,950)*S),life=GFX.rand(.35,.6),s0=GFX.rand(22,38)*S,s1=8*S,
+						ramp=ramp,drag=.4,hot=.9,fin=.05,fp=.4})
+				end
 			end
 		end
-		-- floor splash ring under it
-		if age<1 then
-			local fl=x.base+x.f*(70*S)+x.u*(3*S)
-			local wv=goalFxEaseOut(age/.6)
-			GFX.ring(fl,x.r,x.f,(80+400*wv)*S,(20*(1-wv)+5)*S,40,.5,.85,1,.6*(1-wv))
-		end
-		-- SPLASH! in front, popping in with a bounce and a shake
-		local wa=a*(1-goalFxSmooth((age-(TM.total-.7))/.4))
-		if age>.05 then
-			local t=age-.05
-			local wpop=math.min(GFX.backOut(t/.16),1.2)
-			local jit=(t<.35) and (math.sin(t*60)*.02) or 0
-			local wc=c-x.u*(60*S)+(GFX.cp-c):getSafeNormal()*(60*S)
-			GFX.comicWord(x,wc,"SPLASH!",13*S*wpop,-.12+jit,wa)
+		if GFX.once(x,"second",TM.second) then
+			local top=c+U*(620*S)
+			GFX.flashAt(x,top,1100*S,{1,.85,.5},.3)
+			GFX.blast(x,top,GFX.teamPal({1,.4,.08}),2.2)
+			GFX.addShake(30*S)
+			GFX.shock(x,top,x.r,x.f,1400*S,22*S,{1,.5,.1},1)
+			for i=1,GFX.n(x,110) do
+				GFX.add({kind=1,p=top,v=GFX.rdir(x)*(GFX.rand(250,950)*S),life=GFX.rand(.7,1.5),s0=GFX.rand(35,75)*S,s1=20*S,
+					ramp=ramp,drag=1.3,grav=-80*S,hot=.8,fin=.03,fp=.4})
+			end
+			for i=1,GFX.n(x,60) do
+				GFX.add({kind=2,p=top,v=GFX.rdir(x)*(GFX.rand(500,1500)*S),life=GFX.rand(.8,1.6),s0=4*S,s1=1*S,ramp=ramp,st=.05,drag=1,grav=350*S,fin=.02})
+			end
 		end
 	end,
 }
@@ -9856,6 +9881,412 @@ GFX_DEFS[41]={
 				local sz=goalFxEaseOut(t)*90*S
 				local fa=1-t
 				GFX.novaStar(m.p,R,U,sz,{{0,1},{1,0},{0,-1},{-1,0}},.1,LinearColor.new(b[1]*k*fa,b[2]*k*fa,b[3]*k*fa,fa))
+			end
+		end
+	end,
+}
+
+-- 42: ROYAL BLADE ---------------------------------------------------------------------------------
+-- White and gold. Everything goes quiet while a beam of light comes down, a huge sword falls out of
+-- the sky and slams into the ground, feathers and gold sparks fly, it flares white and shatters.
+ROYAL_TIMING={fall=1.1,impact=1.35,flare=3.3,shatter=3.9,total=5.6}
+ROYAL_GOLD={1,.72,.22}
+
+-- sword standing on its tip; L = blade length, white 0..1 = how far it has burned to white
+function GFX.royalSword(tip,R,U,F,L,white,a)
+	local k=GFX.K
+	local g=ROYAL_GOLD
+	local function mix(v) return v+(1-v)*white end
+	local gold=LinearColor.new(mix(g[1])*k*1.2,mix(g[2])*k*1.2,mix(g[3])*k*1.2,a)
+	local steel=LinearColor.new(k*.95,k*.95,k,a)
+	local dark=LinearColor.new(.04,.03,.02,a)
+	local function poly(pts,depth,lc)
+		local P={}
+		for i,v in ipairs(pts) do P[i]=tip+R*(v[1]*L)+U*(v[2]*L)+F*(depth*L) end
+		for i=2,#P-1 do WorldDraw.drawTriangle(P[1],P[i],P[i+1],lc,0) end
+	end
+	-- dark edge, so it reads against a bright sky
+	poly({{0,-.03},{.1,.14},{.1,1.02},{-.1,1.02},{-.1,.14}},0,dark)
+	-- blade, with a gold line down the middle
+	poly({{0,0},{.08,.15},{.08,1},{-.08,1},{-.08,.15}},.004,steel)
+	poly({{0,.12},{.018,.2},{.018,.98},{-.018,.98},{-.018,.2}},.008,gold)
+	-- guard: swept up like wings
+	poly({{-.09,.98},{.09,.98},{.14,1.06},{-.14,1.06}},.012,gold)
+	poly({{.1,.98},{.3,1.08},{.42,1.24},{.24,1.16},{.1,1.08}},.012,gold)
+	poly({{-.1,.98},{-.1,1.08},{-.24,1.16},{-.42,1.24},{-.3,1.08}},.012,gold)
+	-- grip and pommel
+	poly({{-.035,1.06},{.035,1.06},{.03,1.3},{-.03,1.3}},.008,dark)
+	poly({{0,1.28},{.06,1.34},{0,1.42},{-.06,1.34}},.012,gold)
+	poly({{0,1.31},{.03,1.34},{0,1.38},{-.03,1.34}},.016,steel)
+end
+
+GFX_DEFS[42]={
+	duration=function() return ROYAL_TIMING.total end,
+	init=function(x)
+		x.gc=x.base+x.f*(60*x.S)
+	end,
+	update=function(x,age,d)
+		local S,TM=x.S,ROYAL_TIMING
+		local U=x.u
+		local R=GFX.flatRight(x)
+		local Fv=GFX.cp-x.gc
+		local F=(Fv-U*Vec3.dot(Fv,U)):getSafeNormal()
+		local k=GFX.K
+		local g=ROYAL_GOLD
+		local c=x.gc
+		local L=430*S
+		local mid=c+U*(L*.65)
+		local white={1,1,1}
+		-- the beam comes down and gold motes drift up through it
+		if age<TM.impact then
+			local t=goalFxSmooth(age/TM.fall)
+			GFX.beam(c,c+U*(1800*S),(10+t*70)*S,LinearColor.new(g[1]*k*.5*t,g[2]*k*.5*t,g[3]*k*.5*t,.3*t))
+			GFX.beam(c,c+U*(1800*S),(3+t*18)*S,LinearColor.new(k*t,k*t,k*t,.6*t))
+			GFX.glow(c,(40+t*130)*S,g[1],g[2],g[3],.3+t*.5,age*2,.8)
+			for i=1,GFX.rate(x,"mote",55) do
+				local th=GFX.rand(0,6.2832)
+				local rr=GFX.rand(40,300)*S
+				GFX.add({kind=2,p=c+x.r*(math.cos(th)*rr)+x.f*(math.sin(th)*rr),v=U*(GFX.rand(120,300)*S),life=1.1,
+					s0=4*S,s1=1*S,ramp={g,g},st=.05,fin=.2})
+			end
+		end
+		-- the sword falls, picking up speed
+		if age>=TM.fall and age<TM.impact then
+			local t=(age-TM.fall)/(TM.impact-TM.fall)
+			GFX.royalSword(c+U*((1-t*t)*2200*S),R,U,F,L,.3,1)
+		end
+		if GFX.once(x,"impact",TM.impact) then
+			GFX.flashAt(x,mid,1000*S,white,.3)
+			GFX.blast(x,c+U*(40*S),GFX.teamPal(g),1.8)
+			GFX.addShake(30*S)
+			GFX.light(x,mid,g,70000,3400*S,.03,.5,1.2)
+			GFX.shock(x,c+U*(6*S),x.r,x.f,1300*S,20*S,g,.9)
+			GFX.shock(x,c+U*(10*S),x.r,x.f,800*S,14*S,white,.6)
+			GFX.shock(x,mid,R,U,900*S,12*S,g,.8)
+			for i=1,GFX.n(x,110) do
+				local dir=(GFX.rdir(x)+U*.6):getSafeNormal()
+				GFX.add({kind=2,p=c,v=dir*(GFX.rand(400,1300)*S),life=GFX.rand(.6,1.3),s0=GFX.rand(3,6)*S,s1=1*S,
+					ramp={g,g},st=.05,drag=1.4,grav=300*S,fin=.02})
+			end
+			-- feathers: thrown out, then they drift down
+			for i=1,GFX.n(x,70) do
+				local col=(i%4==0) and g or white
+				GFX.add({kind=4,quad=true,p=c+U*(GFX.rand(20,500)*S),v=GFX.rdir(x)*(GFX.rand(200,620)*S),life=GFX.rand(2,3.6),
+					s0=GFX.rand(10,18)*S,s1=8*S,ramp={col,col},grav=70*S,drag=1.8,spin=GFX.rand(2,5),fin=.15,emis=1.1})
+			end
+			-- cracks of light running out from where it landed
+			x.cracks={}
+			for i=1,8 do
+				local th=i/8*6.2832+GFX.rand(-.25,.25)
+				x.cracks[i]={dir=x.r*math.cos(th)+x.f*math.sin(th),len=GFX.rand(350,750)*S}
+			end
+		end
+		if age>=TM.impact and age<TM.shatter then
+			local flare=goalFxSmooth((age-TM.flare)/(TM.shatter-TM.flare))
+			local since=age-TM.impact
+			-- it lands hard and rocks to a stop
+			local rock=math.sin(since*38)*math.exp(-since*7)*12*S+math.sin(age*60)*flare*5*S
+			local ra=goalFxSmooth(since/.3)
+			for i=0,11 do
+				local th=i/12*6.2832+age*.3
+				local dir=R*math.cos(th)+U*math.sin(th)
+				local len=((i%2==0) and 700 or 460)*S
+				local o=mid-F*(8*S)
+				GFX.beam(o,o+dir*len,26*S,LinearColor.new(g[1]*k*.3*ra,g[2]*k*.3*ra,g[3]*k*.3*ra,.25*ra))
+			end
+			GFX.glow(mid-F*(5*S),(260+flare*400)*S,g[1],g[2],g[3],.45+flare*.5,age*.8,.7)
+			for _,cr in ipairs(x.cracks or {}) do
+				local grow=goalFxEaseOut(math.min(since/.25,1))
+				GFX.beam(c+U*(3*S),c+U*(3*S)+cr.dir*(cr.len*grow),7*S,LinearColor.new(g[1]*k,g[2]*k,g[3]*k,.8*(1-flare*.5)))
+			end
+			GFX.royalSword(c+R*rock,R,U,F,L,flare,1)
+			-- a shine running up the blade
+			if since>.6 and since<1.1 then
+				local t=(since-.6)/.5
+				local at=c+U*(L*t)+F*(L*.03)
+				GFX.beam(at-R*(L*.1),at+R*(L*.1),9*S,LinearColor.new(k,k,k,.8))
+			end
+			if flare>0 then GFX.addShake(flare*4*S*d*20) end
+		end
+		-- the finale: it shatters into gold and white
+		if GFX.once(x,"shatter",TM.shatter) then
+			GFX.flashAt(x,mid,1100*S,white,.35)
+			GFX.blast(x,mid,GFX.teamPal(g),2)
+			GFX.addShake(26*S)
+			GFX.light(x,mid,g,70000,3400*S,.03,.3,1.1)
+			GFX.shock(x,mid,R,U,1200*S,18*S,g,1)
+			for i=1,GFX.n(x,110) do
+				local col=(i%3==0) and white or g
+				GFX.add({kind=4,p=c+U*(GFX.rand(0,L*1.4))+R*(GFX.rand(-.3,.3)*L),v=GFX.rdir(x)*(GFX.rand(300,1100)*S)+F*(220*S),
+					life=GFX.rand(1,1.6),s0=GFX.rand(12,30)*S,s1=7*S,ramp={col,col},grav=520*S,drag=.5,spin=GFX.rand(4,11),fin=.02,emis=1.1})
+			end
+		end
+	end,
+}
+
+function GFX.popWord(x,c,text,R,U,F,u,a,col)
+	local k=GFX.K
+	GFX.memeText(c,text,R,U,u,u*.95,LinearColor.new(.05*k,.03*k,.06*k,a))
+	GFX.memeText(c+F*(3*x.S),text,R,U,u,u*.45,LinearColor.new(col[1]*k,col[2]*k,col[3]*k,a))
+end
+
+-- 43: POPCORN -------------------------------------------------------------------------------------
+-- A giant striped bucket rises and rattles, kernels start popping out faster and faster, then the
+-- whole thing goes off and popcorn rains over the goal.
+POPCORN_TIMING={rise=.5,big=2.7,total=4.8}
+
+function GFX.popKernel(p,R,U,F,sz,a)
+	local k=GFX.K*a
+	GFX.ellipse(p,R*sz,U*(sz*.85),LinearColor.new(k,k*.95,k*.75,a))
+	GFX.ellipse(p+F*(sz*.05)+R*(sz*.6)+U*(sz*.3),R*(sz*.6),U*(sz*.55),LinearColor.new(k,k*.98,k*.85,a))
+	GFX.ellipse(p+F*(sz*.08)-R*(sz*.25)-U*(sz*.1),R*(sz*.3),U*(sz*.28),LinearColor.new(k,k*.72,k*.2,a))
+end
+
+GFX_DEFS[43]={
+	duration=function() return POPCORN_TIMING.total end,
+	init=function(x)
+		x.fl=x.base+x.f*(60*x.S)
+		x.pc={}
+		x.pcMax=({50,80,120,170})[x.qi]
+	end,
+	update=function(x,age,d)
+		local S,TM=x.S,POPCORN_TIMING
+		local U,c=x.u,x.fl
+		local R=GFX.flatRight(x)
+		local Fv=GFX.cp-c
+		local F=(Fv-U*Vec3.dot(Fv,U)):getSafeNormal()
+		local k=GFX.K
+		local H,W=430*S,250*S
+		local grow=goalFxEaseOut(math.min(age/TM.rise,1))
+		local heat=goalFxSmooth((age-TM.rise)/(TM.big-TM.rise))
+		local shake=math.sin(age*50)*heat*9*S
+		local rimAt=c+U*(H*grow)+R*shake
+		local function kernel(p,v,sz)
+			if #x.pc<x.pcMax then x.pc[#x.pc+1]={p=p,v=v,sz=sz,th=GFX.rand(0,6.28)} end
+		end
+		-- the bucket, in red and white stripes, tapering towards the floor
+		if age<TM.big then
+			local n=8
+			for i=0,n-1 do
+				local a0,a1=i/n*2-1,(i+1)/n*2-1
+				local p0=c+R*(shake+a0*W*.68)
+				local p1=c+R*(shake+a1*W*.68)
+				local q0=rimAt+R*(a0*W)
+				local q1=rimAt+R*(a1*W)
+				local lc=(i%2==0) and LinearColor.new(k*.9,k*.08,k*.08,1) or LinearColor.new(k,k,k,1)
+				WorldDraw.drawTriangle(p0,p1,q1,lc,0)
+				WorldDraw.drawTriangle(p0,q1,q0,lc,0)
+			end
+			-- popcorn heaped in the top
+			if grow>.5 then
+				for i=-3,3 do
+					GFX.popKernel(rimAt+R*(i/3*W*.8)+U*((1-math.abs(i)/3)*60*S)+F*(4*S),R,U,F,46*S,1)
+				end
+			end
+			if age>TM.rise then
+				for i=1,GFX.rate(x,"pop",4+heat*heat*30) do
+					local v=U*(GFX.rand(500,950)*S)+R*(GFX.rand(-380,380)*S)+F*(GFX.rand(-60,160)*S)
+					kernel(rimAt+R*(GFX.rand(-.7,.7)*W),v,GFX.rand(20,34)*S)
+					GFX.addShake(1.2*S)
+				end
+			end
+		end
+		if GFX.once(x,"big",TM.big) then
+			GFX.flashAt(x,rimAt,850*S,{1,.95,.7},.25)
+			GFX.blast(x,rimAt,GFX.teamPal({1,.85,.35}),1.5)
+			GFX.addShake(26*S)
+			GFX.light(x,rimAt,{1,.85,.4},60000,3200*S,.03,.3,1)
+			GFX.shock(x,c+U*(5*S),x.r,x.f,1100*S,16*S,{1,.9,.5},.9)
+			for i=1,GFX.n(x,x.pcMax) do
+				local v=(GFX.rdir(x)+U*.9):getSafeNormal()*(GFX.rand(450,1250)*S)
+				kernel(rimAt,v,GFX.rand(22,40)*S)
+			end
+			for i=1,GFX.n(x,24) do
+				local col=(i%2==0) and {1,.08,.08} or {1,1,1}
+				GFX.add({kind=4,p=c+U*(GFX.rand(0,H)),v=GFX.rdir(x)*(GFX.rand(300,900)*S),life=GFX.rand(1,1.5),s0=GFX.rand(25,50)*S,s1=12*S,
+					ramp={col,col},grav=650*S,drag=.4,spin=GFX.rand(4,9),fin=.02,emis=1})
+			end
+		end
+		local fade=1-goalFxSmooth((age-(TM.total-.5))/.5)
+		for _,p in ipairs(x.pc) do
+			p.v=p.v-U*(1000*S*d)-p.v*(.5*d)
+			p.p=p.p+p.v*d
+			if Vec3.dot(p.p-c,U)<8*S and p.v:length()>1 and Vec3.dot(p.v,U)<0 then
+				p.v=(p.v-U*(1.45*Vec3.dot(p.v,U)))*.6   -- a little bounce off the floor
+				p.p=p.p+U*(4*S)
+			end
+			if fade>0 then GFX.popKernel(p.p,R,U,F,p.sz,fade) end
+		end
+	end,
+}
+
+-- 44: PARTY TIME ----------------------------------------------------------------------------------
+-- Two party poppers fire confetti across the goal, balloons float up, streamers fly, then every
+-- balloon bursts at once with PARTY TIME! and one last blast of confetti.
+PARTY_TIMING={pop=.25,burst=3,total=4.7}
+PARTY_COLS={{1,.2,.4},{.2,.7,1},{1,.85,.15},{.35,.95,.4},{.75,.35,1},{1,.5,.1}}
+
+GFX_DEFS[44]={
+	duration=function() return PARTY_TIMING.total end,
+	init=function(x)
+		x.fl=x.base+x.f*(60*x.S)
+		x.balloons={}
+		for i=1,({6,9,13,18})[x.qi] do
+			x.balloons[i]={off=GFX.rand(-720,720)*x.S,dep=GFX.rand(-120,120)*x.S,t0=GFX.rand(.1,1),sp=GFX.rand(190,330)*x.S,
+				col=PARTY_COLS[i%#PARTY_COLS+1],ph=GFX.rand(0,6.28)}
+		end
+	end,
+	update=function(x,age,d)
+		local S,TM=x.S,PARTY_TIMING
+		local U,c=x.u,x.fl
+		local R=GFX.flatRight(x)
+		local Fv=GFX.cp-c
+		local F=(Fv-U*Vec3.dot(Fv,U)):getSafeNormal()
+		local k=GFX.K
+		local function confetti(p,v,n)
+			for i=1,GFX.n(x,n) do
+				local col=PARTY_COLS[1+i%#PARTY_COLS]
+				local sz=GFX.rand(9,15)*S
+				GFX.add({kind=4,quad=true,p=p,v=v*GFX.rand(.6,1.3)+GFX.rdir(x)*(GFX.rand(120,420)*S),life=GFX.rand(1.6,3),
+					s0=sz,s1=sz*.7,ramp={col,col},grav=190*S,drag=1.5,spin=GFX.rand(5,12),fin=.1,emis=1.1})
+			end
+		end
+		if GFX.once(x,"pop",TM.pop) then
+			for _,side in ipairs({-1,1}) do
+				local p=c+R*(side*620*S)+U*(20*S)
+				GFX.flashAt(x,p,240*S,{1,1,1},.15)
+				confetti(p,(U*.85-R*(side*.55))*(1150*S),70)
+				GFX.shock(x,p,R,U,320*S,8*S,PARTY_COLS[side==1 and 2 or 1],.4)
+			end
+			GFX.addShake(12*S)
+		end
+		-- a steady shower while the balloons go up
+		if age>TM.pop and age<TM.burst then
+			for i=1,GFX.rate(x,"shower",30) do
+				local col=PARTY_COLS[1+i%#PARTY_COLS]
+				GFX.add({kind=4,quad=true,p=c+R*(GFX.rand(-800,800)*S)+U*(900*S),v=U*(-120*S),life=2,s0=11*S,s1=8*S,
+					ramp={col,col},grav=120*S,drag=1,spin=GFX.rand(5,12),fin=.1,emis=1})
+			end
+		end
+		for _,b in ipairs(x.balloons) do
+			local t=age-b.t0
+			if t>0 and age<TM.burst then
+				local p=c+R*(b.off+math.sin(age*1.6+b.ph)*22*S)+F*b.dep+U*(b.sp*t+60*S)
+				local sz=55*S*math.min(t/.25,1)
+				local e=b.col
+				GFX.ellipse(p,R*sz,U*(sz*1.2),LinearColor.new(e[1]*k,e[2]*k,e[3]*k,1))
+				GFX.ellipse(p+F*(1*S)-R*(sz*.32)+U*(sz*.45),R*(sz*.18),U*(sz*.25),LinearColor.new(k,k,k,.8))
+				WorldDraw.drawLine(p-U*(sz*1.2),p-U*(sz*1.2+95*S)+R*(math.sin(age*3+b.ph)*12*S),k,k,k,1.5,0)
+			end
+		end
+		if GFX.once(x,"burst",TM.burst) then
+			GFX.addShake(22*S)
+			GFX.light(x,c+U*(500*S),{1,.8,.6},50000,3200*S,.03,.3,1)
+			GFX.flashAt(x,c+U*(450*S),800*S,{1,1,1},.2)
+			for _,b in ipairs(x.balloons) do
+				local t=age-b.t0
+				if t>0 then
+					local p=c+R*b.off+F*b.dep+U*(b.sp*t+60*S)
+					GFX.shock(x,p,R,U,180*S,6*S,b.col,.35)
+					confetti(p,U*(120*S),10)
+				end
+			end
+			confetti(c+U*(450*S),U*(320*S),90)
+		end
+		if age>TM.burst then
+			local t=age-TM.burst
+			local pop=math.min(GFX.backOut(t/.18),1.15)
+			GFX.popWord(x,c+U*(430*S)+F*(70*S),"PARTY TIME!",R,U,F,13*S*pop,1-goalFxSmooth((age-(TM.total-.5))/.4),{1,.85,.15})
+		end
+	end,
+}
+
+-- 45: VOXEL BLAST ---------------------------------------------------------------------------------
+-- Glowing cubes fly in and snap together into a giant blocky ball over the goal. It pulses, then
+-- blows apart into pixel cubes that bounce across the floor.
+VOXEL_TIMING={built=1.1,burst=2.3,total=4.6}
+VOXEL_COLS={{.1,.85,1},{.1,.5,1},{1,.45,.1},{1,.8,.2}}
+
+function GFX.voxelCube(x,p,s,col,a)
+	local k=GFX.K*a
+	local A,B,C=x.r*s,x.f*s,x.u*s
+	local function face(n,e1,e2,sh)
+		local lc=LinearColor.new(col[1]*k*sh,col[2]*k*sh,col[3]*k*sh,a)
+		local o=p+n
+		WorldDraw.drawTriangle(o-e1-e2,o+e1-e2,o+e1+e2,lc,0)
+		WorldDraw.drawTriangle(o-e1-e2,o+e1+e2,o-e1+e2,lc,0)
+	end
+	face(C,A,B,1.2)
+	face(-C,A,B,.4)
+	face(A,B,C,.85)
+	face(-A,B,C,.6)
+	face(B,A,C,.7)
+	face(-B,A,C,.95)
+end
+
+GFX_DEFS[45]={
+	duration=function() return VOXEL_TIMING.total end,
+	init=function(x)
+		local S=x.S
+		x.fl=x.base+x.f*(60*S)
+		x.vc=x.fl+x.u*(380*S)
+		x.vox={}
+		local n=({3,4,5,6})[x.qi]
+		x.vs=170*S/n
+		for i=-n,n do for j=-n,n do for l=-n,n do
+			local dd=math.sqrt(i*i+j*j+l*l)
+			-- only the outer shell of the ball: nobody sees the inside
+			if dd<=n+.3 and dd>n-1.1 then
+				local home=x.r*(i*x.vs*2)+x.f*(j*x.vs*2)+x.u*(l*x.vs*2)
+				x.vox[#x.vox+1]={home=home,from=GFX.rdir(x):getSafeNormal()*(GFX.rand(900,1500)*S),t0=GFX.rand(0,.65),
+					col=VOXEL_COLS[1+((i+j+l)%2)*2+((l>0) and 1 or 0)]}
+			end
+		end end end
+	end,
+	update=function(x,age,d)
+		local S,TM=x.S,VOXEL_TIMING
+		local U=x.u
+		local c=x.vc
+		if age<TM.burst then
+			local pulse=goalFxSmooth((age-TM.built)/(TM.burst-TM.built))
+			local sc=1+math.max(0,math.sin((age-TM.built)*14))*.05*pulse+pulse*.18
+			for _,v in ipairs(x.vox) do
+				local t=math.clamp((age-v.t0)/.4,0,1)
+				if t>0 then
+					local e=goalFxEaseOut(t)
+					GFX.voxelCube(x,c+v.home*sc+v.from*(1-e),x.vs*.92,v.col,1)
+				end
+			end
+			GFX.glow(c,(180+pulse*340)*S,.2,.75,1,.25+pulse*.5,age,.7)
+			if pulse>0 then GFX.addShake(pulse*4*S*d*20) end
+		end
+		if GFX.once(x,"built",TM.built) then
+			GFX.addShake(12*S)
+			GFX.flashAt(x,c,380*S,{.5,.9,1},.12)
+		end
+		if GFX.once(x,"burst",TM.burst) then
+			GFX.flashAt(x,c,1100*S,{.8,.95,1},.3)
+			GFX.blast(x,c,GFX.teamPal({.15,.7,1}),1.9)
+			GFX.addShake(28*S)
+			GFX.light(x,c,{.25,.75,1},70000,3400*S,.03,.3,1.1)
+			GFX.shock(x,x.fl+U*(5*S),x.r,x.f,1200*S,18*S,{.2,.8,1},.9)
+			for _,v in ipairs(x.vox) do
+				v.p=c+v.home
+				v.v=v.home:getSafeNormal()*(GFX.rand(450,1300)*S)+U*(GFX.rand(100,450)*S)
+			end
+		end
+		if age>=TM.burst then
+			local fade=1-goalFxSmooth((age-(TM.total-.6))/.6)
+			local floorH=x.vs
+			for _,v in ipairs(x.vox) do
+				v.v=v.v-U*(1250*S*d)-v.v*(.35*d)
+				v.p=v.p+v.v*d
+				local h=Vec3.dot(v.p-x.fl,U)
+				if h<floorH and Vec3.dot(v.v,U)<0 then
+					v.p=v.p+U*(floorH-h)
+					v.v=(v.v-U*(1.55*Vec3.dot(v.v,U)))*.72
+				end
+				if fade>0 then GFX.voxelCube(x,v.p,x.vs*.8,v.col,fade) end
 			end
 		end
 	end,
