@@ -291,6 +291,13 @@ local function upgradeConfig()
 		config.version = 28
 		saveConfig()
 	end
+	if ver < 29 then
+		-- NOVA added before the shuffles: 41 -> 42, 42 -> 43.
+		if config.goalFxType == 42 then config.goalFxType = 43
+		elseif config.goalFxType == 41 then config.goalFxType = 42 end
+		config.version = 29
+		saveConfig()
+	end
 end
 
 local function initConfig(dc)
@@ -332,7 +339,7 @@ end
 Box.empty = Box.new(Vec3.zeroVector, Vec3.zeroVector, Quat.identity)
 
 initConfig({
-	version = 28,
+	version = 29,
 
 	firstPersonFOV = 100,
 
@@ -473,7 +480,7 @@ initConfig({
 
 	goalFxEnabled = true,
 	plDribbleFP = true, plDribbleHold = 1.0, plDribbleLook = 1, plFirstPersonFOV = 110,   -- Plutus first person
-	goalFxType = 41,   -- 1-40 = goal explosions, 41 = Shuffle, 42 = Shuffle Favorites
+	goalFxType = 42,   -- 1-41 = goal explosions, 42 = Shuffle, 43 = Shuffle Favorites
 	goalFxFavs = "",   -- favorites as "|Name|Name|"
 	goalFxShake = true,          -- big goal explosions shake the camera a little
 	goalFxBrowseCat = "all",     -- explosion browser tab: all / premium / holiday / meme
@@ -910,11 +917,12 @@ GOAL_FX_TYPES = {
 	"Candy Cane Cracker (Christmas)",
 	"Snow Globe (Christmas)",
 	"Xeno",
+	"NOVA",
 	"Shuffle (random each goal)",
 	"Shuffle Favorites",
 }
-GOALFX_SHUFFLE = 41
-GOALFX_SHUFFLE_FAV = 42
+GOALFX_SHUFFLE = 42
+GOALFX_SHUFFLE_FAV = 43
 -- Tier ranking (best to worst) and category for every explosion, used by the explosion browser.
 -- Ranked on how much is going on (real 3D geometry, layers, choreography, a clear payoff), not
 -- on age. S = showpiece, A = excellent, B = good but simpler, C = basic / due an upgrade.
@@ -960,8 +968,9 @@ GOAL_FX_INFO = {
 	[38]={tier="B",cat="holiday",hol="Christmas",desc="A ring of candy canes whirls faster and faster, then snaps into pieces"},
 	[39]={tier="B",cat="holiday",hol="Christmas",desc="A giant snow globe shakes, cracks and shatters into ice and snow"},
 	[40]={tier="A",cat="team",desc="The Xeno logo spins up with a ring, grows and sparkles over the goal, then breaks apart"},
-	[41]={tier="",cat="all",desc="A different explosion every goal"},
-	[42]={tier="",cat="all",desc="A different one of your favorites every goal (star them first)"},
+	[41]={tier="S",cat="team",desc="For team NOVA: a star goes supernova, their logo slams together over the blast, then shatters"},
+	[42]={tier="",cat="all",desc="A different explosion every goal"},
+	[43]={tier="",cat="all",desc="A different one of your favorites every goal (star them first)"},
 }
 GOAL_FX_TIER_COL = {S={1,.75,.2},A={.45,.85,1},B={.55,1,.5},C={.7,.7,.75}}
 GOAL_FX_TIER_ORDER = {S=1,A=2,B=3,C=4}
@@ -9653,6 +9662,202 @@ GFX_DEFS[40]={
 			end
 		end
 		if GFX.once(x,"dissolve",TM.dissolve) then TeamLogoFX.sound("dissolve") end
+	end,
+}
+
+-- 41: NOVA (Esports Teams) -----------------------------------------------------------------------
+-- Made for team NOVA, in their white and sky blue. Light gets sucked into one point, a four-point
+-- star ignites and goes supernova, then their logo slams together piece by piece over the blast with
+-- NOVA underneath. A shine sweeps across it, the star flares, and the logo shatters into white and
+-- blue shards.
+NOVA_TIMING={ignite=1.1,boom=1.5,logo=1.6,lock=2.3,shine=2.8,flare=4.2,shatter=4.7,total=6.3}
+NOVA_BLUE={.25,.66,.96}
+
+-- four long points with sharp waists; tips are {x,y} from the centre, in logo units
+function GFX.novaStar(c,R,U,Q,tips,waist,lc)
+	local pts={}
+	for i,t in ipairs(tips) do
+		local n=tips[i%4+1]
+		-- a curve between each pair of tips, pulled towards the centre, so the points stay sharp
+		local mx,my=(t[1]+n[1])*waist,(t[2]+n[2])*waist
+		for j=0,5 do
+			local f=j/6
+			local g=1-f
+			local px=g*g*t[1]+2*g*f*mx+f*f*n[1]
+			local py=g*g*t[2]+2*g*f*my+f*f*n[2]
+			pts[#pts+1]=c+R*(px*Q)+U*(py*Q)
+		end
+	end
+	pts[#pts+1]=pts[1]
+	GFX.fan(c,pts,lc)
+end
+
+-- traced from the team's logo. e[1..4] 0..1 = how far each piece has flown in (left leg, diagonal,
+-- top right, star)
+function GFX.novaLogo(x,c,R,U,F,Q,e,a,white)
+	local function poly(pts,off,lc)
+		local P={}
+		for i,v in ipairs(pts) do P[i]=c+R*((v[1]+off[1])*Q)+U*((v[2]+off[2])*Q)+F*(3*Q/100) end
+		WorldDraw.drawTriangle(P[1],P[2],P[3],lc,0)
+		WorldDraw.drawTriangle(P[1],P[3],P[4],lc,0)
+	end
+	local k=GFX.K*white
+	local lw=LinearColor.new(k,k,k,a)
+	local function fly(i,dx,dy)
+		local m=(1-goalFxEaseOut(math.clamp(e[i],0,1)))*2.6
+		return {dx*m,dy*m}
+	end
+	-- dark rounded square behind it
+	local pc=LinearColor.new(.03,.032,.036,a*goalFxSmooth(e[1]*3))
+	local rim={}
+	local corners={{.85,.85,0},{-.85,.85,1.5708},{-.85,-.85,3.1416},{.85,-.85,4.7124}}
+	for _,cn in ipairs(corners) do
+		for j=0,4 do
+			local th=cn[3]+j/4*1.5708
+			rim[#rim+1]=c+R*((cn[1]+math.cos(th)*.15)*Q)+U*((cn[2]+math.sin(th)*.15)*Q)
+		end
+	end
+	rim[#rim+1]=rim[1]
+	GFX.fan(c,rim,pc)
+	if e[1]>0 then poly({{-.79,-.44},{-.27,-.44},{-.04,.62},{-.44,.62}},fly(1,-1,-.5),lw) end
+	if e[2]>0 then poly({{-.29,.62},{-.01,.62},{.27,-.44},{-.06,-.44}},fly(2,0,1),lw) end
+	if e[3]>0 then poly({{.08,.31},{.27,.62},{.65,.62},{.32,.19}},fly(3,1,.5),lw) end
+	if e[4]>0 then
+		local m=goalFxEaseOut(math.clamp(e[4],0,1))
+		local sc=c+R*(.33*Q)+U*(.04*Q)
+		local tips={{.41*m,.71*m},{.67*m,-.04*m},{-.15*m,-.71*m},{-.48*m,-.04*m}}
+		-- a dark edge around the star cuts it out of the white N, as on the logo
+		GFX.novaStar(sc+F*(5*Q/100),R,U,Q*1.14,tips,.06,LinearColor.new(.03,.032,.036,a))
+		local b=NOVA_BLUE
+		GFX.novaStar(sc+F*(7*Q/100),R,U,Q,tips,.06,LinearColor.new(b[1]*GFX.K*1.1,b[2]*GFX.K*1.1,b[3]*GFX.K*1.1,a))
+	end
+end
+
+GFX_DEFS[41]={
+	duration=function() return NOVA_TIMING.total end,
+	init=function(x)
+		local S=x.S
+		x.ld=(x.u*.6+x.f*.7+x.r*.3):getSafeNormal()
+		x.c=x.base+x.f*(60*S)
+		x.lc=x.c+x.u*(360*S)
+		GFX.light(x,x.lc,NOVA_BLUE,30000,2600*S,.8,.6,.4)
+	end,
+	update=function(x,age,d)
+		local S,TM=x.S,NOVA_TIMING
+		local U=x.u
+		local R=GFX.flatRight(x)
+		local Fv=GFX.cp-x.lc
+		local F=(Fv-U*Vec3.dot(Fv,U)):getSafeNormal()
+		local k=GFX.K
+		local b=NOVA_BLUE
+		local c=x.lc
+		local Q=170*S
+		-- light gets pulled into one point
+		if age<TM.ignite then
+			local ch=age/TM.ignite
+			for i=1,GFX.rate(x,"pull",90) do
+				local dir=GFX.rdir(x):getSafeNormal()
+				local col=(i%3==0) and {1,1,1} or b
+				GFX.add({kind=2,p=c+dir*(GFX.rand(380,720)*S),v=dir*(-GFX.rand(250,420)*S),att=c,attK=7,killR=20*S,life=.9,
+					s0=4*S,s1=2*S,ramp={col,col},st=.05,fin=.15})
+			end
+			GFX.glow(c,(30+ch*ch*120)*S,b[1],b[2],b[3],.5+ch*.5,age*3,.8)
+			GFX.addShake(ch*ch*3*S*d*20)
+		end
+		-- the star ignites and swells
+		if age>=TM.ignite and age<TM.boom+.1 then
+			local t=math.clamp((age-TM.ignite)/(TM.boom-TM.ignite),0,1)
+			local sz=(.4+goalFxEaseOut(t)*2.2)*Q
+			local ang=age*2
+			local cs,sn=math.cos(ang),math.sin(ang)
+			local tips={{cs,sn},{-sn,cs},{-cs,-sn},{sn,-cs}}
+			GFX.novaStar(c+F*(4*S),R,U,sz,tips,.09,LinearColor.new(b[1]*k*1.3,b[2]*k*1.3,b[3]*k*1.3,1))
+			GFX.glow(c,sz*1.3,b[1],b[2],b[3],.8,ang,.9)
+		end
+		if GFX.once(x,"boom",TM.boom) then
+			GFX.flashAt(x,c,900*S,{1,1,1},.35)
+			GFX.blast(x,c,GFX.teamPal(b),1.8)
+			GFX.addShake(24*S)
+			GFX.light(x,c,b,70000,3400*S,.03,.5,1)
+			GFX.shock(x,c,R,U,1000*S,16*S,b,.9)
+			GFX.shock(x,c,x.r,x.f,1200*S,18*S,{1,1,1},1)
+			GFX.shock(x,x.c+U*(4*S),x.r,x.f,1100*S,16*S,b,1.1)
+			for i=1,GFX.n(x,130) do
+				local col=(i%3==0) and {1,1,1} or b
+				GFX.add({kind=2,p=c,v=GFX.rdir(x)*(GFX.rand(500,1500)*S),life=GFX.rand(.7,1.5),s0=GFX.rand(3,6)*S,s1=1*S,
+					ramp={col,col},st=.05,drag=1.4,grav=120*S,fin=.02})
+			end
+		end
+		-- the logo, with slow rays behind it
+		if age>=TM.logo and age<TM.shatter then
+			local ra=goalFxSmooth((age-TM.logo)/.5)*(1-goalFxSmooth((age-TM.flare)/.5)*.3)
+			for i=0,7 do
+				local th=i/8*6.2832+age*.35
+				local dir=R*math.cos(th)+U*math.sin(th)
+				local len=(i%2==0) and 520 or 380
+				GFX.beam(c-F*(6*S),c-F*(6*S)+dir*(len*S),24*S,LinearColor.new(b[1]*k*.3*ra,b[2]*k*.3*ra,b[3]*k*.3*ra,.25*ra))
+			end
+			local span=TM.lock-TM.logo
+			local function ee(i) return (age-TM.logo-(i-1)*span*.2)/(span*.4) end
+			local flare=goalFxSmooth((age-TM.flare)/(TM.shatter-TM.flare))
+			local shake=math.sin(age*60)*flare*5*S
+			x.logoAt=c+R*shake
+			GFX.novaLogo(x,x.logoAt,R,U,F,Q,{ee(1),ee(2),ee(3),ee(4)},1,1+flare*.4)
+			-- each piece thuds home
+			for i=1,4 do
+				if GFX.once(x,"thud"..i,TM.logo+(i-1)*span*.2+span*.4) then
+					GFX.addShake((i==4 and 14 or 6)*S)
+					GFX.flashAt(x,c,(i==4 and 420 or 200)*S,i==4 and b or {1,1,1},.15)
+				end
+			end
+			-- NOVA underneath
+			if age>=TM.lock then
+				local t=age-TM.lock
+				local pop=1+1.2*(1-goalFxEaseOut(math.min(t/.16,1)))
+				local at=c-U*(275*S)
+				local tu=15*S*pop
+				GFX.memeText(at-F*(2*S),"NOVA",R,U,tu,tu*.62,LinearColor.new(.02,.03,.05,1))
+				GFX.memeText(at,"NOVA",R,U,tu,tu*.3,LinearColor.new(k,k,k,1))
+			end
+			-- a shine sweeping across
+			if age>TM.shine and age<TM.shine+.55 then
+				local t=(age-TM.shine)/.55
+				local px=(-1.5+t*3)*Q
+				local a0=c+F*(7*S)+R*(px-40*S)-U*(1.2*Q)
+				local a1=c+F*(7*S)+R*(px+70*S)+U*(1.2*Q)
+				GFX.beam(a0,a1,16*S,LinearColor.new(k*.8,k*.8,k*.8,.35))
+			end
+			if flare>0 then
+				GFX.glow(c+R*(.33*Q)+F*(8*S),(100+flare*340)*S,b[1],b[2],b[3],flare,age*4,.9)
+				GFX.addShake(flare*4*S*d*20)
+			end
+		end
+		-- the finale: it all shatters
+		if GFX.once(x,"shatter",TM.shatter) then
+			GFX.flashAt(x,c,1000*S,{1,1,1},.35)
+			GFX.blast(x,c,GFX.teamPal(b),2)
+			GFX.addShake(26*S)
+			GFX.light(x,c,b,70000,3400*S,.03,.3,1.1)
+			GFX.shock(x,c,R,U,1200*S,18*S,b,1)
+			for i=1,GFX.n(x,120) do
+				local col=(i%3==0) and b or {1,1,1}
+				GFX.add({kind=4,p=c+R*(GFX.rand(-1,1)*Q)+U*(GFX.rand(-.7,.7)*Q),v=GFX.rdir(x)*(GFX.rand(300,1100)*S)+F*(220*S),
+					life=GFX.rand(1,1.7),s0=GFX.rand(12,30)*S,s1=7*S,ramp={col,col},grav=520*S,drag=.5,spin=GFX.rand(4,11),fin=.02,emis=1.1})
+			end
+			x.mini={}
+			for i=1,({2,3,5,6})[x.qi] do
+				x.mini[i]={t=TM.shatter+.1+i*.14,p=c+R*(GFX.rand(-650,650)*S)+U*(GFX.rand(-150,380)*S)}
+			end
+		end
+		-- little four-point stars popping round the blast
+		for _,m in ipairs(x.mini or {}) do
+			local t=(age-m.t)/.5
+			if t>0 and t<1 then
+				local sz=goalFxEaseOut(t)*90*S
+				local fa=1-t
+				GFX.novaStar(m.p,R,U,sz,{{0,1},{1,0},{0,-1},{-1,0}},.1,LinearColor.new(b[1]*k*fa,b[2]*k*fa,b[3]*k*fa,fa))
+			end
+		end
 	end,
 }
 
