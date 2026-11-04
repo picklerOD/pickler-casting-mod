@@ -1,6 +1,6 @@
 <div align="center">
 
-# Pickler Casting Mod
+# Pickler's Auto Caster Mod
 
 **Turn your Orion Drift spectator view into a real broadcast.**
 
