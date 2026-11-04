@@ -284,6 +284,13 @@ local function upgradeConfig()
 		config.version = 27
 		saveConfig()
 	end
+	if ver < 28 then
+		-- Xeno added before the shuffles: 40 -> 41, 41 -> 42.
+		if config.goalFxType == 40 then config.goalFxType = 41
+		elseif config.goalFxType == 41 then config.goalFxType = 42 end
+		config.version = 28
+		saveConfig()
+	end
 end
 
 local function initConfig(dc)
@@ -325,7 +332,7 @@ end
 Box.empty = Box.new(Vec3.zeroVector, Vec3.zeroVector, Quat.identity)
 
 initConfig({
-	version = 27,
+	version = 28,
 
 	firstPersonFOV = 100,
 
@@ -466,7 +473,7 @@ initConfig({
 
 	goalFxEnabled = true,
 	plDribbleFP = true, plDribbleHold = 1.0, plDribbleLook = 1, plFirstPersonFOV = 110,   -- Plutus first person
-	goalFxType = 40,   -- 1-39 = goal explosions, 40 = Shuffle, 41 = Shuffle Favorites
+	goalFxType = 41,   -- 1-40 = goal explosions, 41 = Shuffle, 42 = Shuffle Favorites
 	goalFxFavs = "",   -- favorites as "|Name|Name|"
 	goalFxShake = true,          -- big goal explosions shake the camera a little
 	goalFxBrowseCat = "all",     -- explosion browser tab: all / premium / holiday / meme
@@ -902,11 +909,12 @@ GOAL_FX_TYPES = {
 	"The Naughty List (Christmas)",
 	"Candy Cane Cracker (Christmas)",
 	"Snow Globe (Christmas)",
+	"Xeno",
 	"Shuffle (random each goal)",
 	"Shuffle Favorites",
 }
-GOALFX_SHUFFLE = 40
-GOALFX_SHUFFLE_FAV = 41
+GOALFX_SHUFFLE = 41
+GOALFX_SHUFFLE_FAV = 42
 -- Tier ranking (best to worst) and category for every explosion, used by the explosion browser.
 -- Ranked on how much is going on (real 3D geometry, layers, choreography, a clear payoff), not
 -- on age. S = showpiece, A = excellent, B = good but simpler, C = basic / due an upgrade.
@@ -934,7 +942,7 @@ GOAL_FX_INFO = {
 	[13]={tier="B",cat="holiday",hol="Christmas",desc="A giant present rattles, the lid blasts off, confetti and ornaments"},
 	[23]={tier="B",cat="holiday",hol="Christmas",desc="A glossy bauble lowers, cracks and shatters into glitter"},
 	[22]={tier="B",cat="holiday",hol="Christmas",desc="A snowman builds itself, waves, then blows apart into snowballs"},
-	[11]={tier="B",cat="meme",desc="An awkward avocado walks in, stares, and its pit explodes into guac"},
+	[11]={tier="B",cat="team",desc="An awkward avocado walks in, stares, and its pit explodes into guac"},
 	[24]={tier="B",cat="meme",desc="'State?'... 'STATE?!' A farmer in a pickup says it's private property"},
 	[8]={tier="A",cat="premium",desc="Searchlights and drumbeats, then a giant team flag, flame jets, confetti and fireworks"},
 	[26]={tier="A",cat="holiday",hol="New Year's",desc="3-2-1 countdown, the ball drops, HAPPY NEW YEAR! and a fireworks barrage"},
@@ -951,13 +959,14 @@ GOAL_FX_INFO = {
 	[37]={tier="S",cat="holiday",hol="Christmas",desc="SPECIAL: A scroll writes the goalie's name, stamps it NAUGHTY! and coal rains down and explodes"},
 	[38]={tier="B",cat="holiday",hol="Christmas",desc="A ring of candy canes whirls faster and faster, then snaps into pieces"},
 	[39]={tier="B",cat="holiday",hol="Christmas",desc="A giant snow globe shakes, cracks and shatters into ice and snow"},
-	[40]={tier="",cat="all",desc="A different explosion every goal"},
-	[41]={tier="",cat="all",desc="A different one of your favorites every goal (star them first)"},
+	[40]={tier="A",cat="team",desc="The Xeno logo spins up with a ring, grows and sparkles over the goal, then breaks apart"},
+	[41]={tier="",cat="all",desc="A different explosion every goal"},
+	[42]={tier="",cat="all",desc="A different one of your favorites every goal (star them first)"},
 }
 GOAL_FX_TIER_COL = {S={1,.75,.2},A={.45,.85,1},B={.55,1,.5},C={.7,.7,.75}}
 GOAL_FX_TIER_ORDER = {S=1,A=2,B=3,C=4}
 
--- the goal explosion picker: one dropdown split into sections (Random, favorites, Big Hits, Special, each holiday),
+-- the goal explosion picker: one dropdown split into sections (Random, favorites, Big Hits, Special, Esports Teams, each holiday),
 -- best tier first inside each section; hover a name for what it does.
 -- < PREV / TEST IT / NEXT > underneath. Special = Death Note plus the meme-style ones.
 GOAL_FX_SECTIONS={
@@ -965,6 +974,7 @@ GOAL_FX_SECTIONS={
 	{"Your Favorites",function(i,inf) return GoalFxIsFav(i) end,true},
 	{"Big Hits",function(i,inf) return inf.cat=="premium" and i~=12 end},
 	{"Special",function(i,inf) return inf.cat=="meme" or i==12 end},
+	{"Esports Teams",function(i,inf) return inf.cat=="team" end},
 	{"Halloween",function(i,inf) return inf.hol=="Halloween" end},
 	{"Christmas",function(i,inf) return inf.hol=="Christmas" end},
 	{"New Year's",function(i,inf) return inf.hol=="New Year's" end},
@@ -1054,6 +1064,8 @@ function PicklerGoalFxBrowser()
 		Gui.sameLine()
 		if Gui.button("STOP##vxGoalStop") then PicklerStopPreview() end
 	end
+	if GFX_LAST_ERROR then PicklerUiColorText(LinearColor.new(1,.4,.35,1),"Explosion error: "..GFX_LAST_ERROR) end
+	if not selectedArena then PicklerUiHint("No arena loaded: TEST plays in front of the camera") end
 	if cur<GOALFX_SHUFFLE then
 		Gui.sameLine()
 		local fav=GoalFxIsFav(cur)
@@ -1109,8 +1121,8 @@ end
 
 function updateGoalFxTrigger()
 	if not config.goalFxEnabled or not selectedArena then
-		-- a TEST preview still plays with match celebrations switched off
-		if not (goalFx.preview and selectedArena) then goalFx.active=false end
+		-- a TEST preview still plays with match celebrations switched off or no arena loaded
+		if not goalFx.preview then goalFx.active=false end
 		return
 	end
 	local stamp=selectedArena.goalScoredTime or 0
@@ -1131,8 +1143,25 @@ function updateGoalFxTrigger()
 	end
 end
 
+-- where a TEST plays when there is no arena or goal to use (an empty server): on the floor level
+-- in front of the camera, fixed at the moment TEST was pressed
+function goalFxCameraFrame()
+	local up=Vec3.new(0,0,1)
+	local fwd=camRot:getForwardVector()
+	local flat=fwd-up*Vec3.dot(fwd,up)
+	if flat:length()<.05 then flat=camRot:getRightVector() end
+	flat=flat:getSafeNormal()
+	local toward=flat*-1
+	return {c=camPos+flat*750,u=up,r=Vec3.cross(up,toward):getSafeNormal(),t=toward}
+end
+
 function goalFxFrame()
-	if not selectedArena or not goalFx.goal then return nil end
+	if not selectedArena or not goalFx.goal then
+		if not goalFx.preview then return nil end
+		if not goalFx.freeFrame then goalFx.freeFrame=goalFxCameraFrame() end
+		local F=goalFx.freeFrame
+		return F.c,F.u,F.r,F.t
+	end
 	local center=goalFx.goal.position
 	local up=selectedArena.up:getSafeNormal()
 	local toward=(selectedArena.center-center):getSafeNormal()
@@ -9377,6 +9406,256 @@ GFX_DEFS[39]={
 	end,
 }
 
+-- 40: XENO (Esports Teams) -------------------------------------------------------------------
+-- Team Xeno's logo celebration, copying the preview gif the team sent. A tiny pale logo
+-- spins up at the goal and swells as a ring bursts out of it while its colour floods in; it settles
+-- upright facing the camera at about 1 s, keeps slowly growing with its base over the floor while
+-- white four-point sparkles twinkle on it, then breaks up into slivers and is gone by 3.6 s.
+-- GFX_TEAMLOGO is the logo traced from that gif: a palette plus rectangles, each packed as 9 hex
+-- characters (colour, x, y, width, height on a w by h grid).
+-- No sound API, so there is only a hook:  TeamLogoFX.onSound = function(event) ... end
+--   events: "pop", "settle", "dissolve"
+TEAMLOGO_TIMING={
+	ring=.27,      -- the ring bursts out
+	settle=.85,    -- full size for the first time
+	spin=.95,      -- the spin has stopped
+	ringEnd=1.4,   -- the ring has faded
+	sparkle=1.1,   -- sparkles start
+	dissolve=3.0,  -- starts breaking up
+	total=3.6,
+	width=390,     -- logo width when it settles (times Size)
+}
+TeamLogoFX={onSound=nil}
+function TeamLogoFX.sound(ev)
+	if TeamLogoFX.onSound then pcall(TeamLogoFX.onSound,ev) end
+end
+GFX_TEAMLOGO={w=130,h=114,pal={{0.858,0.198,0.959},{0.896,0.140,0.978},{0.957,0.271,0.979},{0.694,0.235,0.877},{0.240,0.011,0.451},{0.654,0.054,0.925},{0.491,0.051,0.802},{0.912,0.501,0.964}},data=[[
+35b01030145f01010146101020155602020135802050145d02040167602020137902070155303050135803040145c030301070030201
+67203040137603020137a03030147d03020147803020254f04080145704050166704070106e040501673040201475040101676040101
+37704010154d05070145405070166205030166605050106b05070147205060154b060701452060a0165e06070106606090146f060601
+365050103645070201548070901451070c0165d07020155f07060106607050146b07060164308040104708010154808070144f080c01
+55b080b0106608020146808060164209030134509010154609070144d090c01559090c014650906013400a01010410a01015420a0901
+44b0a0b015560a0b014610a070163c0b020133e0b010153f0b0a014490b08015510b0d0145e0b080163a0c040153e0c0a014480c0701
+54f0c0c0145b0c08016380d030133b0d020153d0d09014460d040154a0d0e014580d08016350e02016380e01013390e010153a0e0b01
+4450e03015480e0e014560e08013370e01026340f03015380f0a016420f01014430f02015450f0f014540f080166e0f09013770f0401
+632100401536100a01640100201542100c0134e10020145010090136910010166a100701771100401675100101476100101377100101
+478100201631110301534110b0163f110101540110c0134c11030144f11090166111060176711010136811040156c110401370110101
+77111030147411050162f12030134a12020144c12090165d12080156512010176612020156812080147012060153212180262d130401
+13113010144a130b01655130101659130901562130b0146d13060162c14030112f140301532141701449140b0165414090155d140101
+75e14010155f140c0146b14060162b15030112e150401532151501447150a0165115010145215010165315050135815020165a150101
+55b150d0146815060162a16020112c160701533160201135160301538160d01445160b01650160701557160101358160101559160d01
+46616060162717030112a170f01539170901442170e0165017040155417110146517040162618030112918110153a180601440181001
+35018010155118120166318010146418040162519020122719010112819120153a19040143e19100134e19010154f191101460190601
+5251a01012261a02011281a130153b1a020143d1a0e0154b1a140145f1a04016221b01015231b02017251b01012261b01011271b0901
+2301b02011321b090143b1b0c013471b01014481b01013491b010154a1b130145d1b05016211c02017231c02012251c03011281c0601
+22e1c04011321c080143a1c0b013451c03015481c140145c1c04016201d02017221d02012241d05011291d040122d1d06011331d0501
+4381d0c013441d02015461d150145b1d050161f1e02017211e02012231e070112a1e010122b1e09011341e03014371e0b013421e0101
+5431e180145b1e040205f1e020271f1f03012221f12014341f0c015401f1b0151d20020171f200201221201201433200c0153f201b01
+05f20030145a20050251c21020171e21020122021120143221090103b21030153e211c0105f21020176121020131d22010171e220101
+21f22120143122090103a22050153f22190145822070176222010151b22020271d23020121f231101730230101431230701038230701
+53f231601455230a0176223020105f22030351a24020171c24020121e24120173024020143224050103724060153d241601453240c01
+76224030251925020171b25020121d25110142e25070103525060153b25110104c25010154d250301450250e0151926010121c261001
+42c26070103326060153926100104926040144d26110176226040166626010105e25040371a26020251827020121c270f0142b270701
+032270601538270f0104727040144b27130176227050171928020121b280f0142a280601130280301033280301536280e01044280301
+44728160176228030126528010176628010151728020205d28050271929010121a290e0142829070112f290501034290201536290c01
+0422904014462917017622902012642903015162a02017182a01012192a0e014272a070112e2a07015362a0a010402a02014422a1a01
+05c2a05012632a04017672a01010352a01023612a02025162b01017172b01012182b0e014262b070112d2b08015362b050103b2b0501
+4402b1b0105b2b06012632b03017662b03012172c0e014252c070112c2c08010342c03015372c040103b2c030143e2c1d0105b2c0701
+3632c01012642c03017672c01013682c01015152c02026622c01022172d0d014242d070112b2d09010342d02011362d01010372d0501
+43c2d1e012632d060105a2d08022162e0d016232e01014242e05012292e030112c2e07010332e080143b2e1f012622e07015142e0202
+7162f01012172f0c014232f05012282f050112d2f07010342f03011372f020143b2f1e010592f09010392f02022622f06027682f0102
+715300101216300c0142230050122730060112d300c0143b301d01058300a01369300101215310c0142131050122631060112c310e01
+43a311d01057310a01361310201613300203263310502215320b0142032050122532060112b320f0143a321c01056320a01360320301
+768310203214330b0141f33050122433060112a33100143a331b01055330b0136033020126233060161333010241e340501223340601
+129340f01438341c01054340c01360340101261340601767340301222350601128350e01436351d01053350d01460350201214340a03
+41e350402262350602768350202222360501127360d01434361e0105236010155336030105636090161235020345f360302214370901
+41d370401221370501126370c01432371f0155137060105737080166a330106262370702769370102213380901221380401125380c01
+431381e0154f38090105838060145e38030106138010161238010241c38040272038010221339080171b390101221390301124390a01
+42e391f0154d390c0105939040145d3904010613902026113a020171f3a01011203a09012293a020112b3a020142d3a1e0104b3a0201
+54d3a0d0145c3a05012633906037133a01022143a070241b3a040205a3a020211f3b09012283b020142a3b1f015493b010104a3b0101
+54b3b0f0145c3b04010603b03016123b010211e3c09012273c02014293c1e015473c12010593c020145b3c05010603c04012133c0802
+41b3c03022643c05026113d020101e3d010111f3d07012263d02014283d1d015453d130145a3d050105f3d05016693902060583d0202
+1223e03012253e02014273e1c016433e01015443e140145a3e040105e3e07012653e01010663e01012673e02016123e01023133e0102
+2143e060241a3e030271d3e010201e3e04021223f02012243f02014263f1c015433f14010573f01014583f060105e3f09017673f0201
+3693f01016423f010221440050171940010101d400501222400301425401d0154340120135740010145840050105d400a01767400101
+36840020161240020271c40010205540020221d410101221410301424411e0154241130145741050105c410c0136841010141a400203
+01e41030221c420201221420201423421f0154242120105442010126742010166842010121441060361342010245542060205b420c02
+31b43010121c430101220430201422431f0154143120105343010135443010166743030101d430302220440101421442001541441101
+05244010135344010145444060105a440c0166644030141a43010361344020221544050221b44020201d450401421451e0153f451301
+452450701059450d01614460101215460701420461c0163c46010153d461301650460101451460701058460e0166645020301c460402
+61447020121647030131947010121a470201420471a0163a47040153e47120145047080155847030105b470b01615480101216480601
+01c48030141f481901638480801540480f0144f48080155748060105d48080166548020161549020121749040141f491601335490101
+636490d01543490a0144d49090155649070105d49070166449020101b49040241f4a0f0132e4a010142f4a01013304a02016324a1201
+5444a070144b4a0a015554a0a016164a020205f4a04026634a020241e4b0f0172d4b010132e4b04016324b13015454b050144a4b0901
+3534b01015544b0b012184a03036174c010141e4c0c0132a4c02016304c15015454c03014484c0a013524c01015534c0c0105f4c0301
+6624c030172c4c04026184d01012194d020141e4d0b013294d03016304d16014464d0a013504d02015524d0d0105f4d02026614d0302
+41e4e08015264e01016274e060162f4e16014454e0a0134f4e02015514e0d0135e4e010101b4b03056194e02025234f03016264f0701
+62f4f14014434f0b0134e4f02015504f0d0135d4f03014604f030172d4e020341e4f050201c50020152350020162550080162f501301
+442500a0134c50020164e50020155050020165250010155350090135c50030145f50040161a50020221c51010162551090172e510101
+62f51100143f510c0134b51010164c51070155351080135b51030145e51040141d51050261b52020162552170143c520d01349520201
+64b52070155252080135a52030145d52040152251030361c53020141e53040162553150143a530d01347530201649530801551530801
+05953010135a53020145c53040161c54030141f540201521540301624541401438540e0134654020164854060154e540a01058540301
+65b54010145c54030161b55030141e55010161f550101520550401624551101435550f0134455020164655060154c550a01356550301
+05955010165a55010145b55030161a56050151f560401623561001433560f0134256020164456070154b560a01355560401659560101
+45a56030141857030161b57020121d57010151e570501623570e01431571001641570801354570401458570401549570b02419580201
+31b58010151c580701623580c0142f58100163f580a0135458020175658010145758040161758020261459020131959020151b590701
+62259070142959140133d59010163e590901353590301456590401416590102547590c026125a04015175a01013185a01015195a0b01
+6245a01014255a01016265a02014285a130163b5a0c016535a01013545a01014555a040160f5b05013145b01015155b0d014225b1501
+3375b030163a5b0c015465b0b016515b03014545b040160e5c03017115c02015135c080131b5c010151c5c020131e5c010161f5c0101
+4205c16013365c02016385c0d015455c0c016515c01014525c050160c5d020170e5d04015125d06013185d060141e5d16010345d0101
+6355d13015485d08014505d06014095e010100a5e020170c5e05015115e06013175e01014185e020131a5e010141b5e16016315e1601
+5475e080144f5e05014055f01013065f03014095f030170c5f020100e5f010140f5f200162f5f16015455f080144d5f0701403600301
+30660020140860130141e600e0122c60010132d60010162e600e0143c60010163d60070154460070144b600701403610c01410610201
+41e610c0122a61020162c610f0143b61020163d61080154561040144961080141d620a01227620201629620f0143862030163b620b01
+54662020144862070141e63060132463010152563040162963090153263010163363020143563040163963050143e63010163f630701
+44663070161b63030241964020141e64030132164010152264060162864060152e640401432640501637640d01444640701617650101
+41865040161c65010131d65020151f65090162865030152b65040142f650601635650d0144265070161466050141966020151b660101
+31c66020151e660d0162b66010142c660701633660d01440660701610670601316670301519670f01428670801630670e0143e670701
+60d680601313680501518680b01423680c0162f680c0143b68080160b69040130f690a0151969050141e690f0162d690b01438690801
+6096a030130c6a0c014186a130162b6a0a014356a09017066b040160a6b020130c6b09016156b02014176b11013286b01016296b0901
+4326b09014046c02017066c03016096c030140c6c1a013266c02016286c08014306c09014036d05016096d020140b6d090141d6d0801
+3256d01016266d070142d6d090141d6e020161f6e03014226e02016246e04014286e080141b6f030131e6f010141f6f01016206f0201
+4226f0b0161a70020141c700e01
+]]}
+
+-- GFX.drawTeamLogo: the traced logo as flat camera-facing rectangles. c = centre, ax/ay = unit
+-- axes of the logo, W = width. pale 0..1 washes it toward pale pink, dis 0..1 breaks it into
+-- slivers (each rectangle thins away at its own moment).
+function GFX.teamLogoRects()
+	local L=GFX_TEAMLOGO
+	if L.rects then return L.rects end
+	local rects={}
+	local data=string.gsub(L.data,"%s","")
+	local G,H=L.w,L.h
+	local n=0
+	for c,xx,yy,ww,hh in string.gmatch(data,"(%x)(%x%x)(%x%x)(%x%x)(%x%x)") do
+		local px,py,pw,ph=tonumber(xx,16),tonumber(yy,16),tonumber(ww,16),tonumber(hh,16)
+		n=n+1
+		rects[n]={c=tonumber(c,16)+1,
+			x=(px+pw*.5)/G-.5,y=(H*.5-(py+ph*.5))/G,      -- centre, in logo widths
+			hw=pw*.5/G,hh=ph*.5/G,
+			h=(n*.618034)%1}
+	end
+	L.rects=rects
+	return rects
+end
+
+function GFX.drawTeamLogo(c,ax,ay,W,pale,bright,dis)
+	local k=GFX.K*bright
+	local lcs={}
+	for i,p in ipairs(GFX_TEAMLOGO.pal) do
+		lcs[i]=LinearColor.new((p[1]+(.95-p[1])*pale)*k,(p[2]+(.8-p[2])*pale)*k,(p[3]+(1-p[3])*pale)*k,1)
+	end
+	local cx,cy,cz=c.x,c.y,c.z
+	local ux,uy,uz=ax.x*W,ax.y*W,ax.z*W
+	local vx,vy,vz=ay.x*W,ay.y*W,ay.z*W
+	local draw=WorldDraw.drawTriangle
+	for _,r in ipairs(GFX.teamLogoRects()) do
+		local t=0
+		if dis>0 then t=math.clamp((dis-r.h*.55)/.45,0,1) end
+		if t<1 then
+			local hw,hh=r.hw*(1-t*t),r.hh*(1-t)
+			local x0,x1,y0,y1=r.x-hw,r.x+hw,r.y-hh,r.y+hh
+			local a=Vec3.new(cx+ux*x0+vx*y0,cy+uy*x0+vy*y0,cz+uz*x0+vz*y0)
+			local b=Vec3.new(cx+ux*x1+vx*y0,cy+uy*x1+vy*y0,cz+uz*x1+vz*y0)
+			local d=Vec3.new(cx+ux*x1+vx*y1,cy+uy*x1+vy*y1,cz+uz*x1+vz*y1)
+			local e=Vec3.new(cx+ux*x0+vx*y1,cy+uy*x0+vy*y1,cz+uz*x0+vz*y1)
+			local lc=lcs[r.c]
+			draw(a,b,d,lc,0)
+			draw(a,d,e,lc,0)
+		end
+	end
+end
+
+GFX_DEFS[40]={
+	duration=function() return TEAMLOGO_TIMING.total end,
+	init=function(x)
+		local S=x.S
+		x.ld=(x.u*.6+x.f*.7+x.r*.3):getSafeNormal()
+		x.sc=x.base+x.f*(100*S)
+		x.sp={}
+		for i=1,GFX.n(x,16) do
+			local th=GFX.rand(0,6.2832)
+			local rr=math.sqrt(GFX.rand(0,1))*.62
+			x.sp[i]={lx=math.cos(th)*rr,ly=math.sin(th)*rr*.82,t0=GFX.rand(0,1.2),per=GFX.rand(.55,1.1),sz=GFX.rand(10,26)}
+		end
+	end,
+	update=function(x,age,d)
+		local S,TM=x.S,TEAMLOGO_TIMING
+		local U=x.u
+		local R=GFX.flatRight(x)
+		local Fv=GFX.cp-x.sc
+		local F=(Fv-U*Vec3.dot(Fv,U)):getSafeNormal()
+		local WS=TM.width*S
+		-- size: flies up from nothing, then keeps growing slowly until it breaks up
+		local grow
+		if age<TM.settle then grow=(age/TM.settle)^1.6
+		else grow=1+(age-TM.settle)*.4 end
+		local W=WS*grow
+		local m=goalFxSmooth(age/TM.settle)
+		-- starts at the middle of the goal; once settled its bottom edge stays just over the floor
+		local c=x.sc+F*(40*S)+U*((70*S)*(1-m)+(W*GFX_TEAMLOGO.h/GFX_TEAMLOGO.w*.5+10*S)*m)
+		-- faces the camera; spins in about 1.4 turns and settles upright
+		local toCam=(GFX.cp-c):getSafeNormal()
+		local up=U-toCam*Vec3.dot(U,toCam)
+		if up:length()<.05 then up=U end
+		up=up:getSafeNormal()
+		local right=Vec3.cross(up,toCam):getSafeNormal()
+		if Vec3.dot(right,R)<0 then right=right*-1 end
+		local ang=-9*(1-goalFxEaseOut(age/TM.spin))
+		local ca,sa=math.cos(ang),math.sin(ang)
+		local ax=right*ca+up*sa
+		local ay=up*ca-right*sa
+		local dis=math.clamp((age-TM.dissolve)/(TM.total-.05-TM.dissolve),0,1)
+
+		-- soft magenta glow behind it so it stands out against a bright arena
+		if dis<1 then GFX.glow(c-toCam*(6*S),W*.75,.7,.12,1,.3*(1-dis)*math.min(1,m*2),0,.2) end
+		if age>.04 and dis<1 then
+			local pale=1-goalFxSmooth((age-.35)/.6)
+			GFX.drawTeamLogo(c,ax,ay,W,pale,.85,dis)
+		end
+
+		-- the ring that bursts out as it pops
+		if age>TM.ring and age<TM.ringEnd then
+			local rt=age-TM.ring
+			local rad=.9*WS*(1-math.exp(-rt*3.6))
+			local ra=1-goalFxSmooth((age-.7)/(TM.ringEnd-.7))
+			GFX.ring(c+toCam*(3*S),right,up,rad,(1.5+3.5*ra)*S,48,1,.72,1,ra)
+		end
+		if GFX.once(x,"pop",TM.ring) then
+			TeamLogoFX.sound("pop")
+			GFX.flashAt(x,c,170*S,{.95,.6,1},.2)
+			GFX.light(x,c,{.8,.2,1},30000,2400*S,.1,TM.dissolve-TM.ring,.5)
+			GFX.addShake(6*S)
+			for i=1,GFX.n(x,50) do
+				local dir=GFX.rdir(x,.6):getSafeNormal()
+				GFX.add({kind=2,p=c,v=dir*(GFX.rand(400,1000)*S),life=GFX.rand(.35,.7),s0=3*S,s1=.5*S,
+					ramp={{1,1,1},{.95,.45,1},{.55,.1,.95}},drag=2.4,st=.04})
+			end
+		end
+		if GFX.once(x,"settle",TM.settle) then TeamLogoFX.sound("settle") end
+
+		-- four-point sparkles twinkling on and around it
+		if age>TM.sparkle and dis<1 then
+			local fade=goalFxSmooth((age-TM.sparkle)/.25)*(1-dis)
+			local k=GFX.K*1.2
+			for _,sp in ipairs(x.sp) do
+				local ph=((age+sp.t0)/sp.per)%1
+				local tw=math.sin(ph*math.pi)
+				tw=tw*tw*fade
+				if tw>.03 then
+					local p=c+toCam*(5*S)+right*(sp.lx*W)+up*(sp.ly*W)
+					local s=sp.sz*S*(.5+.5*tw)
+					local lc=LinearColor.new(k*tw,k*tw,k*tw,tw)
+					GFX.beam(p-right*s,p+right*s,1.1*S,lc)
+					GFX.beam(p-up*s,p+up*s,1.1*S,lc)
+				end
+			end
+		end
+		if GFX.once(x,"dissolve",TM.dissolve) then TeamLogoFX.sound("dissolve") end
+	end,
+}
+
 -- run control ------------------------------------------------------------------------------------
 -- Shuffle: one pick per celebration, never the same one twice in a row. favOnly picks only from
 -- the favorites (all of them if none are starred).
@@ -9458,7 +9737,7 @@ function GFX.frame(x,age)
 end
 
 function drawGoalFxRaw()
-	if not WorldDraw or not config.goalFxEnabled or not goalFx.active then
+	if not WorldDraw or not goalFx.active or not (config.goalFxEnabled or goalFx.preview) then
 		if GFX.run then GFX.stop() end
 		return
 	end
@@ -9566,6 +9845,9 @@ function drawGoalFx()
 	if not WorldDraw then return end
 	local ok,err=pcall(drawGoalFxRaw)
 	if not ok then
+		-- kept until the next TEST: the frame-by-frame script error clears itself straight away
+		local nm=GFX.run and GOAL_FX_TYPES[GFX.run.typ] or "?"
+		GFX_LAST_ERROR=tostring(nm)..": "..tostring(err)
 		goalFx.active=false
 		GFX.stop()
 		error(err,0)
@@ -12873,12 +13155,15 @@ end
 
 -- play a goal celebration at the goal (optionally a specific type) and fly the camera there
 function PicklerPlayGoalFx(typeOverride)
-	if not selectedArena then return end
+	GFX_LAST_ERROR=nil
+	goalFx.freeFrame=nil
 	goalFx.active=true
 	goalFx.preview=true
 	goalFx.typeOverride=typeOverride
 	goalFx.startTime=totalTime
-	goalFx.goal=selectedArena.away.goal
+	-- no arena, or its goal hasn't loaded: goalFxFrame plays it in front of the camera instead
+	goalFx.goal=selectedArena and selectedArena.away.goal or nil
+	if goalFx.goal and not goalFx.goal.position then goalFx.goal=nil end
 	goalFx.scorerName=config.deathNoteTestName   -- previews write this name in the Death Note
 	-- The preview camera is a separate pseudo-mode (see goalFxPreviewCamWanted): the active casting
 	-- camera, its mode and the free cam are never touched. Only remember the view to come back to.
