@@ -55,6 +55,10 @@ You can also follow one player in first or third person, or fly a free camera.
 | **Low-End PC** | Lowest effect quality for a smoother frame rate |
 | **Easy on the Eyes** | Softer flashes and no camera shake |
 
+## Questions
+
+Any questions? DM **.pickler.** on Discord.
+
 ## Credits
 
 Made by **Pickler**. Camera styles built from scripts by Plutus, Zepy, Yuki & Mozzy, and Snowman (Snoowman & nikita.26). Follow+ by dennssen.
