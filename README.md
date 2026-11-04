@@ -37,6 +37,7 @@ You can also follow one player in first or third person, or fly a free camera.
 - **Specials:** Death Note, GG EZ, Busted, Paparazzi, UFO Abduction and more
 - **Esports Teams:** Xeno and Guacward
 - **Holidays:** sets for Halloween, Christmas, New Year's and Valentine's
+- **Esports teams:** custom explosions with team logos, like NOVA and Xeno
 
 ### Also included
 
