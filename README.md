@@ -4,7 +4,7 @@
 
 **Turn your Orion Drift spectator view into a real broadcast.**
 
-[**Website**](https://trxpz65-netizen.github.io/pickler-casting-mod/) · [**Download the mod**](https://trxpz65-netizen.github.io/pickler-casting-mod/downloads/Pickler_Casting_Mod.luau) · [**Clip Companion**](https://trxpz65-netizen.github.io/pickler-casting-mod/downloads/PicklerClipCompanion.zip)
+[**Website**](https://picklerod.github.io/pickler-casting-mod/) · [**Download the mod**](https://picklerod.github.io/pickler-casting-mod/downloads/Pickler_Casting_Mod.luau) · [**Clip Companion**](https://picklerod.github.io/pickler-casting-mod/downloads/PicklerClipCompanion.zip)
 
 `4 camera styles` · `39 goal explosions` · `4 one-click setups` · `automatic clips`
 
